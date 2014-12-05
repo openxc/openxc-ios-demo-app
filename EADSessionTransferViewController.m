@@ -151,10 +151,25 @@
             _totalBytesRead += bytesAvailable;
         }
 
-        NSString* newString = [_textView.text stringByAppendingString: [NSString stringWithUTF8String:[data bytes]]];
+        // We need to purge null bytes from the received data.
+        char* sanitized = malloc(data.length + 1);
+        int j = 0;
+        for (int i = 0; i < data.length; i++) {
+            if (((const char*)data.bytes)[i] == '\0') {
+                continue;
+            }
+            else {
+                sanitized[j] = ((const char*)data.bytes)[i];
+                j++;
+            }
+        }
+        sanitized[j] = '\0';
+        NSString* newString = [_textView.text stringByAppendingString:[NSString stringWithCString:sanitized encoding:NSASCIIStringEncoding] ];
 
-        // Set text view to last 40960 characters received.
-        _textView.text = [newString substringFromIndex: MAX(0,(int)[newString length] - 40960)];
+        free(sanitized);
+
+        // Set text view to last 4096 characters received.
+        _textView.text = [newString substringFromIndex: MAX(0,(int)[newString length] - 4096)];
         [_textView scrollRangeToVisible:NSMakeRange(_textView.text.length, 0)];
     }
 
